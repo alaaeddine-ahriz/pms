@@ -55,10 +55,14 @@ def verify_token(token: str) -> dict:
     
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-        user_id: int = payload.get("sub")
+        user_id: str = payload.get("sub")
         if user_id is None:
             raise credentials_exception
-        return {"user_id": user_id}
+        return {
+            "user_id": int(user_id),
+            "email": payload.get("email"),
+            "role": payload.get("role")
+        }
     except JWTError:
         raise credentials_exception
 
@@ -67,12 +71,25 @@ def get_current_user(token: str = Depends(security), db: Session = Depends(get_d
     """
     Dépendance pour récupérer l'utilisateur courant à partir du token
     """
+    from models.hr import Employe  # Import ici pour éviter les imports circulaires
+    
     token_data = verify_token(token.credentials)
     user_id = token_data["user_id"]
     
-    # TODO: Récupérer l'utilisateur depuis la base de données
-    # Pour l'instant, on retourne juste l'ID
-    return {"id": user_id}
+    # Récupérer l'utilisateur depuis la base de données
+    user = db.query(Employe).filter(
+        Employe.id_employe == user_id,
+        Employe.is_active == "1"
+    ).first()
+    
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or inactive",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    return user
 
 
 def require_role(required_role: str):
@@ -80,7 +97,10 @@ def require_role(required_role: str):
     Décorateur pour exiger un rôle spécifique
     """
     def role_checker(current_user=Depends(get_current_user)):
-        # TODO: Implémenter la vérification des rôles
-        # Pour l'instant, on accepte tous les utilisateurs authentifiés
+        if current_user.role != required_role and current_user.role != "admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Required role: {required_role}"
+            )
         return current_user
     return role_checker 

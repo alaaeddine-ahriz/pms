@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from database import get_db
 from dependencies import get_pagination_params, require_authenticated_user
-from schemas.common import PaginationParams, ResponseMessage
+from schemas.common import PaginationParams, ResponseMessage, AttachDocumentRequest
 from schemas.projects import *
 from models.projects import Projet, SiteClient
 from models.finance import CaisseProjet, LedgerLine, Account

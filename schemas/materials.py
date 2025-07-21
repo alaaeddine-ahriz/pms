@@ -27,9 +27,7 @@ class MaterielResponse(MaterielBase):
     documents: Optional[List["DocumentResponse"]] = None
 
 
-class AttachDocumentRequest(BaseModel):
-    """Demande d'attachement de document"""
-    document_ids: List[int] = Field(..., description="IDs des documents à attacher")
+
 
 
 # Import pour éviter les références circulaires

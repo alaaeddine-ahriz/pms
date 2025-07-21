@@ -4,7 +4,7 @@ Schémas pour les ressources humaines
 from typing import Optional, List
 from datetime import datetime, date
 from decimal import Decimal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from .common import BaseSchema, TimestampMixin
 
 
@@ -25,6 +25,17 @@ class EmployeCreate(EmployeBase):
     id_doc_permis: Optional[int] = Field(None, description="ID document permis")
 
 
+class CreateEmployeeRequest(EmployeBase):
+    """Schéma pour créer un employé avec authentification"""
+    id_doc_cin: Optional[int] = Field(None, description="ID document CIN")
+    id_doc_permis: Optional[int] = Field(None, description="ID document permis")
+    
+    # Champs d'authentification
+    email: Optional[EmailStr] = Field(None, description="Email pour se connecter")
+    password: Optional[str] = Field(None, min_length=6, description="Mot de passe")
+    role: Optional[str] = Field("employee", description="Rôle: admin, manager, employee")
+
+
 class EmployeUpdate(BaseSchema):
     """Schéma pour modifier un employé"""
     cin_numero: Optional[str] = None
@@ -36,6 +47,8 @@ class EmployeUpdate(BaseSchema):
     id_fonction: Optional[int] = None
     id_doc_cin: Optional[int] = None
     id_doc_permis: Optional[int] = None
+    email: Optional[EmailStr] = None
+    role: Optional[str] = None
 
 
 class EmployeResponse(EmployeBase, TimestampMixin):
@@ -43,12 +56,13 @@ class EmployeResponse(EmployeBase, TimestampMixin):
     id_employe: int
     id_doc_cin: Optional[int] = None
     id_doc_permis: Optional[int] = None
+    email: Optional[str] = None
+    role: Optional[str] = None
+    is_active: Optional[str] = None
     fonction: Optional["FonctionEmployeResponse"] = None
 
 
-class AttachDocumentRequest(BaseModel):
-    """Demande d'attachement de document"""
-    document_ids: List[int] = Field(..., description="IDs des documents à attacher")
+
 
 
 class TaskBase(BaseSchema):
@@ -89,7 +103,13 @@ class LinkSubtaskRequest(BaseModel):
     child_task_id: int = Field(..., description="ID de la tâche enfant")
 
 
-# Import pour éviter les références circulaires
+class TaskAssignmentRequest(BaseModel):
+    """Schéma pour assigner une tâche à un employé"""
+    id_employe: int = Field(..., description="ID de l'employé à assigner")
+
+
+# Résolution des références forward
 from .referentiels import FonctionEmployeResponse
+FonctionEmployeResponse.model_rebuild()
 EmployeResponse.model_rebuild()
 TaskResponse.model_rebuild() 

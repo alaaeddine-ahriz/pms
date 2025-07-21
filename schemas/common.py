@@ -48,4 +48,9 @@ class TimestampMixin(BaseModel):
 class ResponseMessage(BaseModel):
     """Message de réponse simple"""
     message: str
-    success: bool = True 
+    success: bool = True
+
+
+class AttachDocumentRequest(BaseModel):
+    """Demande d'attachement de document"""
+    document_ids: List[int] = Field(..., description="IDs des documents à attacher") 

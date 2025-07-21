@@ -1,12 +1,13 @@
 """
 PMS Protection Incendie - API Principal
+Support des environnements multiples (dev, prod, test)
 """
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import time
 import logging
-from config import settings
+from config import settings, get_environment_info, get_cors_origins_list
 from database import create_tables
 
 # Import des routes
@@ -23,8 +24,11 @@ from routes.manufacturing import router as manufacturing_router
 from routes.finance import router as finance_router
 from routes.logistics import router as logistics_router
 
-# Configuration du logging
-logging.basicConfig(level=logging.INFO)
+# Configuration du logging selon l'environnement
+logging.basicConfig(
+    level=getattr(logging, settings.log_level),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 # Métadonnées pour la documentation API
@@ -79,7 +83,7 @@ tags_metadata = [
     },
 ]
 
-# Création de l'application FastAPI avec documentation enrichie
+# Création de l'application FastAPI avec configuration dynamique
 app = FastAPI(
     title=settings.project_name,
     description=f"""
@@ -112,28 +116,26 @@ Cette API utilise l'authentification **JWT Bearer Token**.
 - [Guide de Démarrage Rapide](quick_start.py)
     """,
     version=settings.version,
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url="/docs" if getattr(settings, 'enable_docs', True) else None,
+    redoc_url="/redoc" if getattr(settings, 'enable_redoc', True) else None,
     openapi_tags=tags_metadata,
     contact={
         "name": "Support PMS Protection Incendie",
-        "email": "support@pms-incendie.ma",
+        "email": "alaaahriz@gmail.com",
     },
     license_info={
         "name": "Propriétaire",
-        "url": "https://www.pms-incendie.ma/license",
     },
 )
 
-# Middleware CORS
+# Middleware CORS configuré selon l'environnement
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # À configurer selon vos besoins en production
+    allow_origins=get_cors_origins_list(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 # Middleware pour le timing des requêtes
 @app.middleware("http")
@@ -143,7 +145,6 @@ async def add_process_time_header(request: Request, call_next):
     process_time = time.time() - start_time
     response.headers["X-Process-Time"] = str(process_time)
     return response
-
 
 # Gestionnaire d'erreurs global
 @app.exception_handler(Exception)
@@ -157,28 +158,32 @@ async def global_exception_handler(request: Request, exc: Exception):
         }
     )
 
-
 # Événements de démarrage et d'arrêt
 @app.on_event("startup")
 async def startup_event():
     """Actions à effectuer au démarrage de l'application"""
+    env_info = get_environment_info()
+    
     logger.info("Démarrage de l'API PMS Protection Incendie")
     logger.info(f"Version: {settings.version}")
+    logger.info(f"Environnement: {env_info['environment']}")
+    logger.info(f"Configuration: {env_info['config_class']}")
+    logger.info(f"Debug: {env_info['debug_mode']}")
+    logger.info(f"Port: {env_info['port']}")
     
     # Créer les tables de base de données
     try:
         create_tables()
         logger.info("Tables de base de données créées/vérifiées")
     except Exception as e:
-        logger.error(f"Erreur lors de la création des tables: {e}")
-        raise
-
+        logger.warning(f"Base de données non disponible: {e}")
+        logger.warning("L'API démarre en mode sans base de données")
+        logger.warning("Certaines fonctionnalités nécessiteront une DB")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Actions à effectuer à l'arrêt de l'application"""
     logger.info("Arrêt de l'API PMS Protection Incendie")
-
 
 # Enregistrement des routes
 app.include_router(common_router)
@@ -194,21 +199,31 @@ app.include_router(manufacturing_router)
 app.include_router(finance_router)
 app.include_router(logistics_router)
 
-
 # Route racine
 @app.get("/")
 async def root():
     """
     Page d'accueil de l'API
     """
+    env_info = get_environment_info()
     return {
         "name": settings.project_name,
         "version": settings.version,
         "description": settings.description,
-        "docs": "/docs",
-        "redoc": "/redoc",
-        "health": "/health"
+        "environment": env_info["environment"],
+        "docs": "/docs" if env_info["docs_enabled"] else None,
+        "redoc": "/redoc" if env_info["docs_enabled"] else None,
+        "health": "/health",
+        "debug": env_info["debug_mode"]
     }
+
+# Route d'informations sur l'environnement
+@app.get("/environment")
+async def environment_info():
+    """
+    Informations sur l'environnement actuel
+    """
+    return get_environment_info()
 
 
 # Route de métriques (pour monitoring)
@@ -234,13 +249,13 @@ async def create_platform_user():
     # TODO: Implémenter la création d'utilisateurs admin
     raise HTTPException(status_code=501, detail="Not implemented yet")
 
-
 if __name__ == "__main__":
     import uvicorn
+    # Configuration par défaut si lancé directement
     uvicorn.run(
         "main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
-        log_level="info"
+        host=getattr(settings, 'host', '127.0.0.1'),
+        port=getattr(settings, 'port', 8000),
+        reload=getattr(settings, 'reload', True),
+        log_level=settings.log_level.lower()
     ) 

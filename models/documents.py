@@ -28,5 +28,5 @@ class Document(Base, TimestampMixin):
     uploaded_by = Column(BigInteger, ForeignKey('employe.id_employe'))
     
     # Relations
-    uploader = relationship("Employe", back_populates="uploaded_documents")
+    uploader = relationship("Employe", back_populates="uploaded_documents", foreign_keys=[uploaded_by])
     tags = relationship("TagDocument", secondary=document_tag_association, back_populates="documents") 

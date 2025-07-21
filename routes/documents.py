@@ -7,7 +7,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from database import get_db
-from dependencies import require_authenticated_user, get_current_user_id
+from auth import get_current_user
 from schemas.documents import *
 from schemas.common import ResponseMessage
 from models.documents import Document
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/api/v1/documents", tags=["Documents"])
 async def upload_document(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user_id: int = Depends(get_current_user_id)
+    current_user=Depends(get_current_user)
 ):
     """
     Upload d'un fichier (multipart/form-data)
@@ -56,7 +56,7 @@ async def upload_document(
         mime_type=file.content_type,
         size_bytes=file_size,
         checksum=checksum,
-        uploaded_by=current_user_id
+        uploaded_by=current_user.id_employe
     )
     
     db.add(document)
@@ -77,7 +77,7 @@ async def upload_document(
 async def get_document_metadata(
     document_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(require_authenticated_user)
+    current_user=Depends(get_current_user)
 ):
     """
     Métadonnées et URL signée pour un document
@@ -105,7 +105,7 @@ async def delete_document(
     document_id: int,
     force: bool = False,
     db: Session = Depends(get_db),
-    current_user=Depends(require_authenticated_user)
+    current_user=Depends(get_current_user)
 ):
     """
     Suppression (soft delete par défaut, hard delete avec ?force=true)
@@ -140,7 +140,7 @@ async def attach_tags(
     document_id: int,
     tag_request: AttachTagRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(require_authenticated_user)
+    current_user=Depends(get_current_user)
 ):
     """
     Attacher des tags à un document
@@ -178,7 +178,7 @@ async def detach_tag(
     document_id: int,
     tag_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(require_authenticated_user)
+    current_user=Depends(get_current_user)
 ):
     """
     Détacher un tag d'un document

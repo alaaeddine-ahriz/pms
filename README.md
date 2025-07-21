@@ -1,231 +1,231 @@
-# PMS Protection Incendie - API Backend
+# 🔥 API PMS Protection Incendie
 
-API de gestion de projet pour une entreprise de fabrication et d'installation de réseaux de protection incendie.
+**API complète pour la gestion d'une entreprise spécialisée dans les systèmes de protection incendie**
 
-## 🚀 Fonctionnalités
+[![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Python](https://img.shields.io/badge/python-3.8+-blue.svg?style=for-the-badge&logo=python)](https://python.org)
+[![PostgreSQL](https://img.shields.io/badge/postgresql-316192?style=for-the-badge&logo=postgresql)](https://postgresql.org)
 
-- **Gestion des projets** : Création, suivi et gestion complète des projets d'installation
-- **Ressources humaines** : Gestion des employés, tâches et assignations
-- **Parc véhicules** : Suivi des véhicules, kilométrages et conducteurs
-- **Matériel** : Inventaire et gestion du matériel
-- **Produits & Stock** : Gestion des produits, articles et mouvements de stock
-- **Fabrication** : Ordres de fabrication et nomenclatures (BOM)
-- **Finance** : Grand livre, comptabilité et caisses de projet
-- **Documents** : Upload, stockage et gestion des documents
-- **Logistique** : Livraisons et approvisionnements
+## 🚀 **Démarrage Ultra-Rapide**
 
-## 📋 Prérequis
-
-- Python 3.8+
-- PostgreSQL 15+
-- pip ou pipenv
-
-## 🛠️ Installation
-
-### 1. Cloner le projet
 ```bash
-git clone <repo-url>
-cd pms-efficience
+# Option A: Test immédiat (SQLite - aucune config)
+./no-db
+
+# Option B: Développement avec PostgreSQL (Docker)
+docker-compose -f config/docker-compose.dev.yml up -d
+./dev
+
+# 🌐 Accéder à l'API
+# http://127.0.0.1:8000/docs
 ```
 
-### 2. Créer un environnement virtuel
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# ou
-venv\Scripts\activate  # Windows
-```
-
-### 3. Installer les dépendances
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Configuration de la base de données
-
-Créer une base de données PostgreSQL :
-```sql
-CREATE DATABASE pms_incendie;
-CREATE USER pms_user WITH PASSWORD 'your_password';
-GRANT ALL PRIVILEGES ON DATABASE pms_incendie TO pms_user;
-```
-
-### 5. Configuration de l'environnement
-
-Copier le fichier d'exemple et le modifier :
-```bash
-cp .env.example .env
-```
-
-Éditer le fichier `.env` avec vos paramètres :
-```bash
-DATABASE_URL=postgresql://pms_user:your_password@localhost:5432/pms_incendie
-SECRET_KEY=your-super-secret-key-here
-```
-
-### 6. Initialiser la base de données
-
-Les tables seront créées automatiquement au démarrage de l'application grâce à SQLAlchemy.
-
-Alternativement, vous pouvez exécuter le script SQL directement :
-```bash
-psql -U pms_user -d pms_incendie -f schema_bdd.sql
-```
-
-## 🚀 Démarrage
-
-### Mode développement
-```bash
-python main.py
-```
-
-### Avec uvicorn
-```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-L'API sera accessible sur : http://localhost:8000
-
-## 📚 Documentation
-
-### Documentation interactive
-- **Swagger UI** : http://localhost:8000/docs
-- **ReDoc** : http://localhost:8000/redoc
-
-### Endpoints principaux
-
-#### Authentification
-- `POST /auth/login` - Connexion
-- `POST /auth/refresh` - Renouvellement de token
-- `POST /auth/register` - Inscription (admin)
-
-#### Santé de l'API
-- `GET /health` - Vérification de l'état de l'API
-- `GET /` - Informations générales
-
-#### Données de référence
-- `GET /api/v1/devise` - Liste des devises
-- `GET /api/v1/expense-categories` - Catégories de dépenses
-- `GET /api/v1/statuts/*` - Différents statuts
-
-#### Documents
-- `POST /api/v1/documents` - Upload de fichier
-- `GET /api/v1/documents/{id}` - Métadonnées document
-- `DELETE /api/v1/documents/{id}` - Suppression
-
-## 🔐 Authentification
-
-L'API utilise JWT (JSON Web Tokens) pour l'authentification.
-
-### Test de connexion
-```bash
-curl -X POST "http://localhost:8000/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "admin@example.com",
-    "password": "password123"
-  }'
-```
-
-### Utilisation du token
-```bash
-curl -X GET "http://localhost:8000/api/v1/devise" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-## 📁 Structure du projet
+## 📁 **Structure du Projet**
 
 ```
 pms-efficience/
-├── main.py                 # Point d'entrée FastAPI
-├── config.py               # Configuration
-├── database.py             # Configuration base de données
-├── auth.py                 # Authentification JWT
-├── dependencies.py         # Dépendances communes
-├── requirements.txt        # Dépendances Python
-├── .env.example           # Exemple de configuration
-├── schema_bdd.sql         # Schéma de base de données
-├── routes.md              # Documentation des routes
-├── models/                # Modèles SQLAlchemy ORM
-│   ├── __init__.py
-│   ├── base.py
-│   ├── referentiels.py
-│   ├── documents.py
-│   ├── hr.py
-│   ├── vehicles.py
-│   ├── materials.py
-│   ├── products.py
-│   ├── projects.py
-│   ├── manufacturing.py
-│   ├── finance.py
-│   └── logistics.py
-├── schemas/               # Schémas Pydantic
-│   ├── __init__.py
-│   ├── common.py
-│   ├── auth.py
-│   ├── referentiels.py
-│   ├── documents.py
-│   ├── hr.py
-│   ├── vehicles.py
-│   ├── materials.py
-│   ├── products.py
-│   ├── projects.py
-│   ├── manufacturing.py
-│   ├── finance.py
-│   └── logistics.py
-└── routes/                # Endpoints API
-    ├── __init__.py
-    ├── auth.py
-    ├── common.py
-    ├── referentiels.py
-    └── documents.py
+├── 📋 docs/                    # Documentation complète
+├── 🚀 scripts/                # Scripts de lancement et config  
+├── ⚙️  config/                 # Configuration par environnement
+├── 🧪 tests/                  # Tests et exemples
+├── 🏗️  models/                 # Modèles SQLAlchemy
+├── 🌐 routes/                 # Routes FastAPI
+├── 📝 schemas/                # Schémas Pydantic
+├── 📦 uploads/               # Fichiers uploadés
+└── 🔧 Core files             # main.py, config.py, etc.
 ```
 
-## 🧪 Tests
+## 🎯 **Fonctionnalités**
 
-Pour lancer les tests :
+### **🏗️ Gestion de Projets**
+- Sites clients et équipes
+- Caisses et allocation ressources
+- Suivi des projets incendie
+
+### **👥 Ressources Humaines**  
+- Gestion employés et tâches
+- Assignations et planning
+- Suivi des équipes terrain
+
+### **📦 Gestion des Stocks**
+- Inventaire temps réel  
+- Mouvements de stock
+- Gestion produits/articles
+
+### **🏭 Fabrication**
+- Ordres de fabrication
+- Nomenclatures (BOM)
+- Suivi production avec photos
+
+### **💰 Finance & Comptabilité**
+- Grand livre comptable
+- Écritures comptables
+- Rapports financiers
+
+### **🚚 Logistique**
+- Livraisons et approvisionnements
+- Gestion véhicules
+- Suivi matériel
+
+## ⚡ **Installation & Configuration**
+
+### **Prérequis**
+- Python 3.8+ (recommandé: 3.12 avec pyenv)
+- PostgreSQL (optionnel, SQLite disponible)
+
+### **Installation Rapide**
 ```bash
-pytest
+# Cloner le projet
+git clone <repository>
+cd pms-efficience
+
+# Configurer l'environnement
+python3 scripts/setup_env.py dev
+
+# Vérifier la configuration
+python3 scripts/check_setup.py
+
+# Lancer l'API
+./dev
 ```
 
-## 🔧 Développement
-
-### Ajout d'un nouvel endpoint
-
-1. Créer le modèle SQLAlchemy dans `models/`
-2. Créer les schémas Pydantic dans `schemas/`
-3. Créer les routes dans `routes/`
-4. Ajouter le routeur dans `main.py`
-
-### Migration de base de données
-
-Si vous modifiez les modèles, vous pouvez utiliser Alembic pour les migrations :
+### **Installation Complète avec PostgreSQL via Docker (Recommandé)**
 ```bash
-alembic init alembic
-alembic revision --autogenerate -m "Description du changement"
-alembic upgrade head
+# Démarrer PostgreSQL avec Docker (simple et fiable)
+docker-compose -f config/docker-compose.dev.yml up -d
+
+# Vérifier que PostgreSQL est actif
+docker-compose -f config/docker-compose.dev.yml ps
+
+# Lancer l'API
+./dev
 ```
 
-## 📝 Notes importantes
+<details>
+<summary>Alternative: PostgreSQL local (cliquez pour développer)</summary>
 
-- Tous les endpoints (sauf `/health` et `/`) nécessitent une authentification
-- Les fichiers uploadés sont stockés dans le dossier `uploads/`
-- La pagination par défaut est de 20 éléments par page
-- Les timestamps sont en UTC
-- La suppression par défaut est "soft delete"
+```bash
+# macOS avec Homebrew
+brew install postgresql@15
+brew services start postgresql@15
+createdb pms_incendie_dev
 
-## 🤝 Contribution
+# Lancer l'API
+./dev
+```
+</details>
 
-1. Fork le projet
-2. Créer une branche feature (`git checkout -b feature/nouvelle-fonctionnalité`)
-3. Commit les changements (`git commit -am 'Ajout nouvelle fonctionnalité'`)
-4. Push vers la branche (`git push origin feature/nouvelle-fonctionnalité`)
-5. Créer une Pull Request
+## 🛠️ **Scripts Disponibles**
 
-## 📄 Licence
+| Script | Usage | Description |
+|--------|-------|-------------|
+| `./dev` | **Développement** | PostgreSQL + hot reload + Swagger |
+| `./no-db` | **Test rapide** | SQLite temporaire (zéro config) |
+| `docker-compose -f config/docker-compose.dev.yml up -d` | **Base de données** | PostgreSQL via Docker |
+| `scripts/setup_env.py dev` | **Configuration** | Configure l'environnement |
+| `scripts/check_setup.py` | **Diagnostic** | Vérifie la configuration |
 
-Ce projet est sous licence [À définir].
+## 🌐 **URLs d'Accès**
 
-## 📞 Support
+Une fois l'API lancée :
 
-Pour toute question ou problème, contactez l'équipe de développement. 
+- **🏠 API** : http://127.0.0.1:8000
+- **📖 Documentation Swagger** : http://127.0.0.1:8000/docs  
+- **📘 Documentation ReDoc** : http://127.0.0.1:8000/redoc
+- **💓 Health Check** : http://127.0.0.1:8000/health
+- **🔧 Infos Environnement** : http://127.0.0.1:8000/environment
+
+## 🔐 **Authentification**
+
+```bash
+# Test de connexion
+curl -X POST http://127.0.0.1:8000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"password123"}'
+
+# Utilisation du token
+curl -H "Authorization: Bearer <token>" \
+  http://127.0.0.1:8000/api/v1/projects
+```
+
+## 📖 **Documentation**
+
+| Guide | Description |
+|-------|-------------|
+| **[🚀 Démarrage](docs/START_HERE.md)** | Guide complet de démarrage |
+| **[📁 Structure](docs/STRUCTURE.md)** | Organisation du projet |
+| **[🗄️ Base de données](docs/DB_SETUP.md)** | Configuration PostgreSQL |
+| **[⚙️ Environnements](docs/ENVIRONMENTS.md)** | Gestion multi-environnements |
+
+## 🧪 **Tests**
+
+```bash
+# Configuration test
+python3 scripts/setup_env.py test
+
+# Lancer les tests  
+ENVIRONMENT=test pytest tests/
+
+# Tests API
+python3 tests/test_api.py
+```
+
+## 🏗️ **Architecture**
+
+```mermaid
+graph TB
+    A[FastAPI] --> B[Routes]
+    B --> C[Schemas Pydantic]
+    B --> D[Models SQLAlchemy]
+    D --> E[PostgreSQL]
+    A --> F[Auth JWT]
+    A --> G[Swagger Docs]
+```
+
+## 🔧 **Environnements**
+
+| Environnement | Port | Base de données | Documentation |
+|---------------|------|-----------------|---------------|
+| **Development** | 8000 | PostgreSQL:5433 | ✅ Activée |
+| **Production** | 80 | PostgreSQL:5432 | ❌ Désactivée |
+| **Test** | Variable | PostgreSQL:5434 | ✅ Activée |
+
+## 🚀 **Déploiement**
+
+### **Développement**
+```bash
+./dev  # ou python3 scripts/start_dev.py
+```
+
+### **Production**  
+```bash
+# Configurer la production
+python3 scripts/setup_env.py prod
+
+# Éditer la configuration
+vim config/.env.prod
+
+# Lancer (nécessite sudo pour port 80)
+sudo python3 scripts/start_prod.py
+```
+
+## 🤝 **Contribution**
+
+1. Structure organisée - chaque fichier a sa place
+2. Documentation complète dans `docs/`
+3. Tests dans `tests/`
+4. Configuration centralisée dans `config/`
+
+## 📞 **Support**
+
+- 📧 **Email** : alaaahriz@gmail.com
+- 📋 **Issues** : [GitHub Repository](#)
+- 📖 **Documentation** : `docs/`
+
+## 📄 **Licence**
+
+Propriétaire - PMS Protection Incendie
+
+---
+
+🔥 **API professionnelle prête pour la production !** 

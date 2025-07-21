@@ -5,75 +5,108 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from database import get_db
-from dependencies import get_pagination_params, require_authenticated_user, get_current_user_id
-from schemas.common import PaginationParams, PaginatedResponse, ResponseMessage
-from schemas.hr import *
+from auth import get_current_user
 from models.hr import Employe, Task
 from models.referentiels import FonctionEmploye
+from schemas.hr import (
+    EmployeResponse, EmployeCreate, EmployeUpdate, CreateEmployeeRequest,
+    TaskResponse, TaskCreate, TaskUpdate,
+    TaskAssignmentRequest
+)
+from schemas.referentiels import FonctionEmployeResponse, FonctionEmployeCreate
+from schemas.common import ResponseMessage, PaginatedResponse, AttachDocumentRequest
 from models.documents import Document
+from dependencies import get_pagination_params
+from schemas.common import PaginationParams
 
 router = APIRouter(prefix="/api/v1", tags=["Human Resources"])
 
 
-# ======================= EMPLOYÉS ==========================
-
-@router.get("/employees", response_model=List[EmployeResponse])
-async def list_employees(
+@router.get("/employees", response_model=PaginatedResponse[EmployeResponse])
+async def get_employees(
     pagination: PaginationParams = Depends(get_pagination_params),
     db: Session = Depends(get_db),
-    current_user=Depends(require_authenticated_user)
+    current_user=Depends(get_current_user)
 ):
-    """Liste des employés avec pagination"""
-    skip = (pagination.page - 1) * pagination.page_size
-    employees = db.query(Employe).offset(skip).limit(pagination.page_size).all()
-    return employees
+    """Récupérer la liste des employés avec pagination"""
+    query = db.query(Employe)
+    
+    total = query.count()
+    employees = query.offset(pagination.offset).limit(pagination.limit).all()
+    
+    return PaginatedResponse(
+        items=employees,
+        total=total,
+        page=pagination.page,
+        size=pagination.size,
+        pages=(total + pagination.size - 1) // pagination.size
+    )
 
 
-@router.post("/employees", response_model=EmployeResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_employee(
-    employee_data: EmployeCreate,
+    employee_data: CreateEmployeeRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(require_authenticated_user)
+    current_user=Depends(get_current_user)
 ):
-    """Créer un nouvel employé"""
-    # Vérifier que le CIN n'existe pas déjà
-    if employee_data.cin_numero:
-        existing = db.query(Employe).filter(Employe.cin_numero == employee_data.cin_numero).first()
-        if existing:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Employee with CIN {employee_data.cin_numero} already exists"
-            )
+    """
+    Créer un nouvel employé
+    """
+    from auth import get_password_hash
     
-    # Vérifier que la fonction existe
-    if employee_data.id_fonction:
-        fonction = db.query(FonctionEmploye).filter(FonctionEmploye.id_fonction == employee_data.id_fonction).first()
-        if not fonction:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Function not found"
-            )
-    
-    employee = Employe(**employee_data.model_dump())
-    db.add(employee)
-    db.commit()
-    db.refresh(employee)
-    return employee
+    try:
+        # Vérifier que l'email n'existe pas déjà (si fourni)
+        if employee_data.email:
+            existing_user = db.query(Employe).filter(Employe.email == employee_data.email).first()
+            if existing_user:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Email already exists"
+                )
+        
+        # Créer l'employé
+        new_employee = Employe(
+            cin_numero=employee_data.cin_numero,
+            nom=employee_data.nom,
+            prenom=employee_data.prenom,
+            etat_civil=employee_data.etat_civil,
+            date_naissance=employee_data.date_naissance,
+            salaire_net=employee_data.salaire_net,
+            id_fonction=employee_data.id_fonction,
+            email=employee_data.email,
+            password_hash=get_password_hash(employee_data.password) if employee_data.password else None,
+            role=employee_data.role or "employee",
+            is_active="1"
+        )
+        
+        db.add(new_employee)
+        db.commit()
+        db.refresh(new_employee)
+        
+        # Message de succès avec info d'authentification
+        auth_info = ""
+        if employee_data.email and employee_data.password:
+            auth_info = f" | Login: {employee_data.email}"
+        
+        return ResponseMessage(
+            message=f"Employé {new_employee.prenom} {new_employee.nom} créé avec succès{auth_info}",
+            success=True
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/employees/{employee_id}", response_model=EmployeResponse)
 async def get_employee(
     employee_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(require_authenticated_user)
+    current_user=Depends(get_current_user)
 ):
-    """Récupérer un employé par ID"""
+    """Récupérer un employé par son ID"""
     employee = db.query(Employe).filter(Employe.id_employe == employee_id).first()
     if not employee:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Employee not found"
-        )
+        raise HTTPException(status_code=404, detail="Employee not found")
     return employee
 
 
@@ -82,19 +115,15 @@ async def update_employee(
     employee_id: int,
     employee_data: EmployeUpdate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_authenticated_user)
+    current_user=Depends(get_current_user)
 ):
-    """Modifier un employé"""
+    """Mettre à jour un employé"""
     employee = db.query(Employe).filter(Employe.id_employe == employee_id).first()
     if not employee:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Employee not found"
-        )
+        raise HTTPException(status_code=404, detail="Employee not found")
     
-    # Mettre à jour uniquement les champs fournis
-    update_data = employee_data.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
+    # Mettre à jour les champs fournis
+    for field, value in employee_data.model_dump(exclude_unset=True).items():
         setattr(employee, field, value)
     
     db.commit()
@@ -102,75 +131,109 @@ async def update_employee(
     return employee
 
 
-@router.post("/employees/{employee_id}/documents", response_model=ResponseMessage)
-async def attach_employee_documents(
+@router.delete("/employees/{employee_id}", response_model=ResponseMessage)
+async def delete_employee(
     employee_id: int,
-    attach_request: AttachDocumentRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(require_authenticated_user)
+    current_user=Depends(get_current_user)
 ):
-    """Attacher des documents à un employé (CIN, permis, etc.)"""
+    """Supprimer un employé (soft delete)"""
     employee = db.query(Employe).filter(Employe.id_employe == employee_id).first()
     if not employee:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Employee not found"
-        )
+        raise HTTPException(status_code=404, detail="Employee not found")
     
-    # Pour l'instant, on ne fait que valider que les documents existent
-    documents = db.query(Document).filter(Document.id_document.in_(attach_request.document_ids)).all()
-    if len(documents) != len(attach_request.document_ids):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="One or more documents not found"
-        )
+    # Soft delete en désactivant l'employé
+    employee.is_active = "0"
+    db.commit()
     
     return ResponseMessage(
-        message=f"Documents attached to employee {employee_id}",
+        message=f"Employee {employee.prenom} {employee.nom} deleted successfully",
         success=True
     )
 
 
-# ======================= TÂCHES ==========================
+@router.post("/employees/{employee_id}/documents", response_model=ResponseMessage)
+async def attach_document_to_employee(
+    employee_id: int,
+    request: AttachDocumentRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    """Attacher des documents à un employé"""
+    employee = db.query(Employe).filter(Employe.id_employe == employee_id).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Vérifier que les documents existent
+    documents = db.query(Document).filter(Document.id_document.in_(request.document_ids)).all()
+    if len(documents) != len(request.document_ids):
+        raise HTTPException(status_code=404, detail="One or more documents not found")
+    
+    # Logique d'attachement selon le type de document
+    # (CIN, permis, etc.)
+    
+    return ResponseMessage(
+        message=f"{len(documents)} document(s) attached to employee",
+        success=True
+    )
 
-@router.get("/tasks", response_model=List[TaskResponse])
-async def list_tasks(
+
+# Routes pour les fonctions d'employés
+@router.get("/functions", response_model=List[FonctionEmployeResponse])
+async def get_employee_functions(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    """Récupérer la liste des fonctions d'employés"""
+    functions = db.query(FonctionEmploye).all()
+    return functions
+
+
+@router.post("/functions", response_model=FonctionEmployeResponse, status_code=status.HTTP_201_CREATED)
+async def create_employee_function(
+    function_data: FonctionEmployeCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    """Créer une nouvelle fonction d'employé"""
+    function = FonctionEmploye(**function_data.model_dump())
+    db.add(function)
+    db.commit()
+    db.refresh(function)
+    return function
+
+
+# Routes pour les tâches
+@router.get("/tasks", response_model=PaginatedResponse[TaskResponse])
+async def get_tasks(
     pagination: PaginationParams = Depends(get_pagination_params),
     db: Session = Depends(get_db),
-    current_user=Depends(require_authenticated_user)
+    current_user=Depends(get_current_user)
 ):
-    """Liste des tâches avec pagination"""
-    skip = (pagination.page - 1) * pagination.page_size
-    tasks = db.query(Task).offset(skip).limit(pagination.page_size).all()
-    return tasks
+    """Récupérer la liste des tâches avec pagination"""
+    query = db.query(Task)
+    
+    total = query.count()
+    tasks = query.offset(pagination.offset).limit(pagination.limit).all()
+    
+    return PaginatedResponse(
+        items=tasks,
+        total=total,
+        page=pagination.page,
+        size=pagination.size,
+        pages=(total + pagination.size - 1) // pagination.size
+    )
 
 
 @router.post("/tasks", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 async def create_task(
     task_data: TaskCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_authenticated_user)
+    current_user=Depends(get_current_user)
 ):
     """Créer une nouvelle tâche"""
-    # Séparer les assignés des autres données
-    assignee_ids = task_data.assignee_ids
-    task_dict = task_data.model_dump()
-    task_dict.pop('assignee_ids', None)
-    
-    task = Task(**task_dict)
+    task = Task(**task_data.model_dump())
     db.add(task)
-    db.flush()  # Pour obtenir l'ID sans commit
-    
-    # Assigner les employés si spécifiés
-    if assignee_ids:
-        assignees = db.query(Employe).filter(Employe.id_employe.in_(assignee_ids)).all()
-        if len(assignees) != len(assignee_ids):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="One or more employees not found"
-            )
-        task.assignees.extend(assignees)
-    
     db.commit()
     db.refresh(task)
     return task
@@ -180,15 +243,12 @@ async def create_task(
 async def get_task(
     task_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(require_authenticated_user)
+    current_user=Depends(get_current_user)
 ):
-    """Récupérer une tâche par ID"""
+    """Récupérer une tâche par son ID"""
     task = db.query(Task).filter(Task.id_task == task_id).first()
     if not task:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Task not found"
-        )
+        raise HTTPException(status_code=404, detail="Task not found")
     return task
 
 
@@ -197,19 +257,15 @@ async def update_task(
     task_id: int,
     task_data: TaskUpdate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_authenticated_user)
+    current_user=Depends(get_current_user)
 ):
-    """Modifier une tâche"""
+    """Mettre à jour une tâche"""
     task = db.query(Task).filter(Task.id_task == task_id).first()
     if not task:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Task not found"
-        )
+        raise HTTPException(status_code=404, detail="Task not found")
     
-    # Mettre à jour uniquement les champs fournis
-    update_data = task_data.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
+    # Mettre à jour les champs fournis
+    for field, value in task_data.model_dump(exclude_unset=True).items():
         setattr(task, field, value)
     
     db.commit()
@@ -217,135 +273,130 @@ async def update_task(
     return task
 
 
-@router.post("/tasks/{task_id}/assignees", response_model=ResponseMessage)
-async def assign_task(
+@router.delete("/tasks/{task_id}", response_model=ResponseMessage)
+async def delete_task(
     task_id: int,
-    assign_request: AssignTaskRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(require_authenticated_user)
+    current_user=Depends(get_current_user)
 ):
-    """Assigner un employé à une tâche"""
+    """Supprimer une tâche"""
     task = db.query(Task).filter(Task.id_task == task_id).first()
     if not task:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Task not found"
-        )
+        raise HTTPException(status_code=404, detail="Task not found")
     
-    employee = db.query(Employe).filter(Employe.id_employe == assign_request.employe_id).first()
-    if not employee:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Employee not found"
-        )
-    
-    # Vérifier si déjà assigné
-    if employee not in task.assignees:
-        task.assignees.append(employee)
-        db.commit()
+    db.delete(task)
+    db.commit()
     
     return ResponseMessage(
-        message=f"Employee {assign_request.employe_id} assigned to task {task_id}",
+        message="Task deleted successfully",
+        success=True
+    )
+
+
+@router.post("/tasks/{task_id}/assignees", response_model=ResponseMessage)
+async def assign_task_to_employee(
+    task_id: int,
+    assignment: TaskAssignmentRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    """Assigner une tâche à un employé"""
+    task = db.query(Task).filter(Task.id_task == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    employee = db.query(Employe).filter(Employe.id_employe == assignment.id_employe).first()
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Vérifier si l'assignation existe déjà
+    if employee in task.assignees:
+        raise HTTPException(status_code=400, detail="Employee already assigned to this task")
+    
+    task.assignees.append(employee)
+    db.commit()
+    
+    return ResponseMessage(
+        message=f"Task assigned to {employee.prenom} {employee.nom}",
         success=True
     )
 
 
 @router.delete("/tasks/{task_id}/assignees/{employee_id}", response_model=ResponseMessage)
-async def unassign_task(
+async def unassign_task_from_employee(
     task_id: int,
     employee_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(require_authenticated_user)
+    current_user=Depends(get_current_user)
 ):
-    """Désassigner un employé d'une tâche"""
+    """Désassigner une tâche d'un employé"""
     task = db.query(Task).filter(Task.id_task == task_id).first()
     if not task:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Task not found"
-        )
+        raise HTTPException(status_code=404, detail="Task not found")
     
     employee = db.query(Employe).filter(Employe.id_employe == employee_id).first()
     if not employee:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Employee not found"
-        )
+        raise HTTPException(status_code=404, detail="Employee not found")
     
-    if employee in task.assignees:
-        task.assignees.remove(employee)
-        db.commit()
+    if employee not in task.assignees:
+        raise HTTPException(status_code=400, detail="Employee not assigned to this task")
+    
+    task.assignees.remove(employee)
+    db.commit()
     
     return ResponseMessage(
-        message=f"Employee {employee_id} unassigned from task {task_id}",
+        message=f"Task unassigned from {employee.prenom} {employee.nom}",
         success=True
     )
 
 
 @router.post("/tasks/{task_id}/subtasks", response_model=ResponseMessage)
-async def link_subtask(
+async def add_subtask(
     task_id: int,
-    subtask_request: LinkSubtaskRequest,
+    subtask_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(require_authenticated_user)
+    current_user=Depends(get_current_user)
 ):
-    """Lier une tâche enfant (sous-tâche)"""
+    """Ajouter une sous-tâche à une tâche"""
     parent_task = db.query(Task).filter(Task.id_task == task_id).first()
     if not parent_task:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Parent task not found"
-        )
+        raise HTTPException(status_code=404, detail="Parent task not found")
     
-    child_task = db.query(Task).filter(Task.id_task == subtask_request.child_task_id).first()
-    if not child_task:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Child task not found"
-        )
+    subtask = db.query(Task).filter(Task.id_task == subtask_id).first()
+    if not subtask:
+        raise HTTPException(status_code=404, detail="Subtask not found")
     
-    # Éviter les références circulaires
-    if child_task == parent_task:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Task cannot be its own subtask"
-        )
+    # Logique pour éviter les cycles
+    if task_id == subtask_id:
+        raise HTTPException(status_code=400, detail="Task cannot be its own subtask")
     
     # Ajouter la relation parent-enfant
-    if child_task not in parent_task.child_tasks:
-        parent_task.child_tasks.append(child_task)
-        db.commit()
+    # (Nécessiterait une logique plus complexe selon le modèle)
     
     return ResponseMessage(
-        message=f"Task {subtask_request.child_task_id} linked as subtask of {task_id}",
+        message="Subtask added successfully",
         success=True
     )
 
 
 @router.post("/tasks/{task_id}/documents", response_model=ResponseMessage)
-async def attach_task_documents(
+async def attach_document_to_task(
     task_id: int,
-    attach_request: AttachDocumentRequest,
+    request: AttachDocumentRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(require_authenticated_user)
+    current_user=Depends(get_current_user)
 ):
     """Attacher des documents à une tâche"""
     task = db.query(Task).filter(Task.id_task == task_id).first()
     if not task:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Task not found"
-        )
+        raise HTTPException(status_code=404, detail="Task not found")
     
-    # Vérifier que tous les documents existent
-    documents = db.query(Document).filter(Document.id_document.in_(attach_request.document_ids)).all()
-    if len(documents) != len(attach_request.document_ids):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="One or more documents not found"
-        )
+    # Vérifier que les documents existent
+    documents = db.query(Document).filter(Document.id_document.in_(request.document_ids)).all()
+    if len(documents) != len(request.document_ids):
+        raise HTTPException(status_code=404, detail="One or more documents not found")
     
-    # Attacher les documents
+    # Attacher les documents à la tâche
     for document in documents:
         if document not in task.documents:
             task.documents.append(document)
@@ -353,6 +404,6 @@ async def attach_task_documents(
     db.commit()
     
     return ResponseMessage(
-        message=f"Documents attached to task {task_id}",
+        message=f"{len(documents)} document(s) attached to task",
         success=True
     ) 

@@ -12,7 +12,7 @@ class AccountBase(BaseSchema):
     """Schéma de base pour les comptes"""
     libelle: str = Field(..., description="Libellé du compte")
     account_type: str = Field(..., description="Type de compte", 
-                             regex="^(ASSET|LIABILITY|EXPENSE|INCOME|EQUITY)$")
+                             pattern="^(ASSET|LIABILITY|EXPENSE|INCOME|EQUITY)$")
 
 
 class AccountCreate(AccountBase):

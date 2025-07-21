@@ -45,6 +45,12 @@ class Employe(Base, TimestampMixin):
     salaire_net = Column(Numeric(12, 2))
     id_fonction = Column(BigInteger, ForeignKey('fonction_employe.id_fonction'))
     
+    # Champs d'authentification
+    email = Column(String(255), unique=True, nullable=True)  # Email pour se connecter
+    password_hash = Column(Text, nullable=True)  # Hash du mot de passe
+    role = Column(String(50), default="employee")  # Rôle: admin, manager, employee
+    is_active = Column(String(1), default="1")  # 1=actif, 0=inactif
+    
     # Relations
     fonction = relationship("FonctionEmploye")
     doc_cin = relationship("Document", foreign_keys=[id_doc_cin])

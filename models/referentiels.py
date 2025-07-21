@@ -2,6 +2,7 @@
 Modèles pour les données de référence
 """
 from sqlalchemy import Column, String, Text, BigInteger
+from sqlalchemy.orm import relationship
 from database import Base
 
 
@@ -47,6 +48,9 @@ class TagDocument(Base):
     id_tag = Column(BigInteger, primary_key=True, autoincrement=True)
     libelle = Column(Text, unique=True, nullable=False)
     description = Column(Text)
+    
+    # Relations
+    documents = relationship("Document", secondary="document_tag", back_populates="tags")
 
 
 class StatutFabrication(Base):

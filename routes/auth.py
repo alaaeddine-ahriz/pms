@@ -10,6 +10,7 @@ from auth import verify_password, create_access_token, get_password_hash
 from schemas.auth import LoginRequest, TokenResponse, RefreshTokenRequest, CreateUserRequest
 from schemas.common import ResponseMessage
 from config import settings
+from models.hr import Employe
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 security = HTTPBearer()
@@ -24,26 +25,42 @@ async def login(
     Connexion avec email et mot de passe
     Retourne un token JWT d'accès
     """
-    # TODO: Récupérer l'utilisateur depuis la base de données
-    # Pour l'instant, on utilise des credentials de test
-    if login_data.email == "admin@example.com" and login_data.password == "password123":
-        # Créer le token JWT
-        access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
-        access_token = create_access_token(
-            data={"sub": "1"},  # TODO: utiliser l'ID réel de l'utilisateur
-            expires_delta=access_token_expires
-        )
-        
-        return TokenResponse(
-            access_token=access_token,
-            token_type="bearer",
-            expires_in=settings.access_token_expire_minutes * 60
+    # Récupérer l'utilisateur depuis la base de données
+    user = db.query(Employe).filter(
+        Employe.email == login_data.email,
+        Employe.is_active == "1"
+    ).first()
+    
+    if not user or not user.password_hash:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
         )
     
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Incorrect email or password",
-        headers={"WWW-Authenticate": "Bearer"},
+    # Vérifier le mot de passe
+    if not verify_password(login_data.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Créer le token JWT
+    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+    access_token = create_access_token(
+        data={
+            "sub": str(user.id_employe),
+            "email": user.email,
+            "role": user.role
+        },
+        expires_delta=access_token_expires
+    )
+    
+    return TokenResponse(
+        access_token=access_token,
+        token_type="bearer",
+        expires_in=settings.access_token_expire_minutes * 60
     )
 
 
@@ -71,14 +88,32 @@ async def register_user(
     """
     Création d'un nouvel utilisateur (admin seulement)
     """
-    # TODO: Vérifier les permissions admin
-    # TODO: Vérifier que l'email n'existe pas déjà
-    # TODO: Créer l'utilisateur en base
+    # Vérifier que l'email n'existe pas déjà
+    existing_user = db.query(Employe).filter(Employe.email == user_data.email).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
     
     # Hasher le mot de passe
     hashed_password = get_password_hash(user_data.password)
     
-    # Pour l'instant, on simule la création
+    # Créer l'utilisateur
+    new_user = Employe(
+        nom=user_data.nom,
+        prenom=user_data.prenom,
+        email=user_data.email,
+        password_hash=hashed_password,
+        role=user_data.role,
+        id_fonction=user_data.id_fonction,
+        is_active="1"
+    )
+    
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
     return ResponseMessage(
         message=f"User {user_data.email} created successfully",
         success=True

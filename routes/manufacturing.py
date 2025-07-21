@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from database import get_db
 from dependencies import get_pagination_params, require_authenticated_user
-from schemas.common import PaginationParams, ResponseMessage
+from schemas.common import PaginationParams, ResponseMessage, AttachDocumentRequest
 from schemas.manufacturing import *
 from models.manufacturing import NomenclatureFabrication, OrdreFabrication, OFDocument
 from models.products import Produit
