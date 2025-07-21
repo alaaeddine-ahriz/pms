@@ -59,11 +59,11 @@ async def create_employee(
         if employee_data.email:
             existing_user = db.query(Employe).filter(Employe.email == employee_data.email).first()
             if existing_user:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Email already exists"
-                )
-        
+            )
+    
         # Créer l'employé
         new_employee = Employe(
             cin_numero=employee_data.cin_numero,
@@ -80,7 +80,7 @@ async def create_employee(
         )
         
         db.add(new_employee)
-        db.commit()
+    db.commit()
         db.refresh(new_employee)
         
         # Message de succès avec info d'authentification
@@ -313,8 +313,8 @@ async def assign_task_to_employee(
     if employee in task.assignees:
         raise HTTPException(status_code=400, detail="Employee already assigned to this task")
     
-    task.assignees.append(employee)
-    db.commit()
+        task.assignees.append(employee)
+        db.commit()
     
     return ResponseMessage(
         message=f"Task assigned to {employee.prenom} {employee.nom}",
@@ -341,8 +341,8 @@ async def unassign_task_from_employee(
     if employee not in task.assignees:
         raise HTTPException(status_code=400, detail="Employee not assigned to this task")
     
-    task.assignees.remove(employee)
-    db.commit()
+        task.assignees.remove(employee)
+        db.commit()
     
     return ResponseMessage(
         message=f"Task unassigned from {employee.prenom} {employee.nom}",

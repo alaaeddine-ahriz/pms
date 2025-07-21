@@ -46,21 +46,21 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Créer le token JWT
-    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
-    access_token = create_access_token(
+        # Créer le token JWT
+        access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+        access_token = create_access_token(
         data={
             "sub": str(user.id_employe),
             "email": user.email,
             "role": user.role
         },
-        expires_delta=access_token_expires
-    )
-    
-    return TokenResponse(
-        access_token=access_token,
-        token_type="bearer",
-        expires_in=settings.access_token_expire_minutes * 60
+            expires_delta=access_token_expires
+        )
+        
+        return TokenResponse(
+            access_token=access_token,
+            token_type="bearer",
+            expires_in=settings.access_token_expire_minutes * 60
     )
 
 
