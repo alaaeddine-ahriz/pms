@@ -38,8 +38,8 @@ async def get_employees(
         items=employees,
         total=total,
         page=pagination.page,
-        size=pagination.size,
-        pages=(total + pagination.size - 1) // pagination.size
+        page_size=pagination.page_size,
+        total_pages=(total + pagination.page_size - 1) // pagination.page_size
     )
 
 
@@ -89,8 +89,9 @@ async def create_employee(
             auth_info = f" | Login: {employee_data.email}"
         
         return ResponseMessage(
-            message=f"Employé {new_employee.prenom} {new_employee.nom} créé avec succès{auth_info}",
-            success=True
+            message=f"Employé {new_employee.prenom} {new_employee.nom} créé avec succès",
+            success=True,
+            id=new_employee.id_employe
         )
     except Exception as e:
         db.rollback()

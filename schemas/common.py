@@ -13,6 +13,14 @@ class PaginationParams(BaseModel):
     page: int = Field(1, ge=1, description="Numéro de page")
     page_size: int = Field(20, ge=1, le=100, description="Taille de page")
 
+    @property
+    def offset(self) -> int:
+        return (self.page - 1) * self.page_size
+
+    @property
+    def limit(self) -> int:
+        return self.page_size
+
 
 class PaginatedResponse(BaseModel, Generic[T]):
     """Réponse paginée générique"""
@@ -48,7 +56,8 @@ class TimestampMixin(BaseModel):
 class ResponseMessage(BaseModel):
     """Message de réponse simple"""
     message: str
-    success: bool = True 
+    success: bool = True
+    id: Optional[int] = None
 
 
 class AttachDocumentRequest(BaseModel):

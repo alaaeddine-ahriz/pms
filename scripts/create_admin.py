@@ -62,8 +62,8 @@ def create_admin_user():
         
         # Données de l'administrateur par défaut
         admin_data = {
-            "nom": "Admin",
-            "prenom": "Super", 
+            "nom": "AHRIZ",
+            "prenom": "Alaaeddine", 
             "email": "admin@mail.com",
             "password": "admin123",  # À changer lors de la première connexion
             "role": "admin"
