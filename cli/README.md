@@ -14,11 +14,38 @@ pip install -r requirements.txt
 
 ## Running the CLI
 
-You can now run the CLI directly from the cli/ directory:
+### Interactive Mode (Recommended)
+
+Launch the interactive shell for seamless navigation:
 
 ```bash
 cd cli
 chmod +x main.py  # (first time only)
+./main.py
+```
+
+This starts an interactive shell where you can:
+- Navigate between modules without restarting
+- Stay logged in across commands
+- Get contextual help for each module
+
+**Interactive Shell Usage:**
+```
+pms-cli> auth          # Enter auth module
+pms-cli (auth)> login  # Login and save token
+pms-cli (auth)> back   # Return to main menu
+pms-cli> projects      # Enter projects module
+pms-cli (projects)> list  # List projects (uses saved token)
+pms-cli (projects)> help  # Show available commands
+pms-cli (projects)> exit  # Exit the CLI
+```
+
+### Command Mode
+
+You can also run individual commands directly:
+
+```bash
+cd cli
 ./main.py [SUBCOMMANDS] [OPTIONS]
 ```
 
@@ -28,7 +55,7 @@ Or, from the project root:
 python -m cli.main [SUBCOMMANDS] [OPTIONS]
 ```
 
-## Available Subcommands
+## Available Modules
 
 - `auth` — Authentication (login, register, refresh)
 - `projects` — Project management
@@ -45,39 +72,59 @@ python -m cli.main [SUBCOMMANDS] [OPTIONS]
 
 ## Example Usage
 
-### Login and Save Token
+### Interactive Shell Workflow
 ```bash
-python -m cli.main auth login
+./main.py                    # Start interactive mode
+pms-cli> auth                # Enter auth module
+pms-cli (auth)> login        # Login (saves token)
+Email: user@example.com
+Password: ********
+Login successful. Token saved.
+
+pms-cli (auth)> back         # Return to main menu
+pms-cli> projects            # Enter projects module
+pms-cli (projects)> list     # List projects (uses saved token automatically)
+pms-cli (projects)> create   # Create new project
+pms-cli (projects)> back     # Return to main menu
+pms-cli> hr                  # Enter HR module
+pms-cli (hr)> list-employees # List employees
+pms-cli (hr)> quit           # Exit CLI
 ```
 
-### List Projects
+### Direct Commands
 ```bash
-python -m cli.main projects list --token <YOUR_TOKEN>
+./main.py auth login
+./main.py projects list
+./main.py hr create-employee --cin-numero 123456 --nom Doe --prenom John
+./main.py documents upload --file-path ./file.pdf
+./main.py common health
 ```
 
-### Create a New Employee
-```bash
-python -m cli.main hr create-employee --cin-numero 123456 --nom Doe --prenom John --etat-civil single --date-naissance 1990-01-01 --salaire-net 5000 --id-fonction 1 --token <YOUR_TOKEN>
-```
+## Authentication
 
-### Upload a Document
-```bash
-python -m cli.main documents upload --file-path ./path/to/file.pdf --token <YOUR_TOKEN>
-```
+The CLI automatically manages authentication tokens:
+- Login once with `auth login` and the token is saved
+- All subsequent commands use the saved token automatically
+- Use `auth logout` to clear the token
+- Token is stored in `~/.pms_cli_token`
 
-### Health Check
-```bash
-python -m cli.main common health
-```
+## Navigation Commands
+
+- `help` — Show help (context-aware)
+- `modules` — List available modules
+- `<module>` — Enter a module (e.g., `auth`, `projects`)
+- `back` — Return to main menu (when in a module)
+- `exit`/`quit` — Exit the CLI
 
 ## Notes
-- Most commands require a valid authentication token (`--token <YOUR_TOKEN>`), which you can obtain via the `auth login` command.
-- Use `--help` with any subcommand to see available options, e.g.:
 
-```bash
-python -m cli.main projects --help
-```
+- The interactive shell shows your login status and current module
+- Use `--help` with any command to see available options
+- Most commands use the saved authentication token automatically
+- For full command execution, some features may require using direct command mode
 
 ## Development
-- Extend or add new subcommands in the `cli/` directory.
-- The CLI uses [Typer](https://typer.tiangolo.com/) for command-line parsing and [requests](https://docs.python-requests.org/) for HTTP API calls. 
+
+- Extend or add new modules in the `cli/` directory
+- The CLI uses [Typer](https://typer.tiangolo.com/) for command-line parsing and [requests](https://docs.python-requests.org/) for HTTP API calls
+- Interactive shell provides a user-friendly interface for exploring and using the API 

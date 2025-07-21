@@ -1,6 +1,7 @@
 import typer
 import requests
 from typing import Optional
+from auth_manager import save_token, clear_token, load_token
 
 app = typer.Typer(help="Authentication commands.")
 
@@ -8,12 +9,24 @@ API_URL = "http://localhost:8000/auth"
 
 @app.command()
 def login(email: str = typer.Option(..., prompt=True), password: str = typer.Option(..., prompt=True, hide_input=True)):
-    """Login and get a JWT token."""
+    """Login and get a JWT token. Token is saved for future CLI use."""
     response = requests.post(f"{API_URL}/login", json={"email": email, "password": password})
     if response.ok:
-        typer.echo(response.json())
+        data = response.json()
+        token = data.get("access_token")
+        if token:
+            save_token(token)
+            typer.echo("Login successful. Token saved.")
+        else:
+            typer.echo("Login response did not contain a token.")
     else:
         typer.echo(f"Error: {response.status_code} - {response.text}")
+
+@app.command()
+def logout():
+    """Logout and clear the saved token."""
+    clear_token()
+    typer.echo("Logged out. Token cleared.")
 
 @app.command()
 def register(email: str = typer.Option(..., prompt=True), password: str = typer.Option(..., prompt=True, hide_input=True), nom: str = typer.Option(..., prompt=True), prenom: str = typer.Option(..., prompt=True)):
