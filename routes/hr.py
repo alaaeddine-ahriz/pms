@@ -59,10 +59,10 @@ async def create_employee(
         if employee_data.email:
             existing_user = db.query(Employe).filter(Employe.email == employee_data.email).first()
             if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Email already exists"
-            )
+                )
     
         # Créer l'employé
         new_employee = Employe(
@@ -80,7 +80,7 @@ async def create_employee(
         )
         
         db.add(new_employee)
-    db.commit()
+        db.commit()
         db.refresh(new_employee)
         
         # Message de succès avec info d'authentification
