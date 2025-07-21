@@ -1,0 +1,353 @@
+# =============================================================================
+# GITIGNORE - PMS Protection Incendie
+# =============================================================================
+
+# =============================================================================
+# ENVIRONNEMENT ET CONFIGURATION
+# =============================================================================
+# Fichiers de configuration sensibles
+.env
+.env.*
+!.env.example
+!env.*.example
+
+# Variables d'environnement locales
+.envrc
+
+# =============================================================================
+# PYTHON
+# =============================================================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff (si jamais utilisé):
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff (si jamais utilisé):
+instance/
+.webassets-cache
+
+# Scrapy stuff (si jamais utilisé):
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# =============================================================================
+# BASE DE DONNÉES
+# =============================================================================
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+
+# PostgreSQL dumps
+*.sql.gz
+*.dump
+*.backup
+
+# Database backups
+backups/
+dumps/
+
+# =============================================================================
+# UPLOADS ET FICHIERS UTILISATEURS
+# =============================================================================
+# Dossiers d'upload
+uploads/*
+files/*
+media/*
+static/files/*
+
+# Mais garder les dossiers avec un .gitkeep
+!uploads/.gitkeep
+!files/.gitkeep
+!media/.gitkeep
+
+# =============================================================================
+# LOGS
+# =============================================================================
+# Log files
+*.log
+logs/*
+log/*
+
+# Mais garder le dossier logs avec .gitkeep
+!logs/.gitkeep
+
+# =============================================================================
+# IDE ET ÉDITEURS
+# =============================================================================
+# VSCode
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Cursor
+.cursor/
+
+# PyCharm
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*~
+*.swp
+*.swo
+*vim
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# =============================================================================
+# SYSTÈME D'EXPLOITATION
+# =============================================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.tmp
+*.temp
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# =============================================================================
+# OUTILS DE DÉVELOPPEMENT
+# =============================================================================
+# Alembic (migrations)
+# Garder les fichiers de migration mais pas les versions locales
+# alembic/versions/*.py est généralement gardé
+# mais on peut ignorer les fichiers temporaires
+alembic.ini.bak
+
+# Docker
+.dockerignore
+
+# Terraform (si utilisé)
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# =============================================================================
+# FICHIERS TEMPORAIRES ET CACHE
+# =============================================================================
+# Fichiers temporaires
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+
+# Cache
+.cache/
+.parcel-cache/
+
+# =============================================================================
+# SÉCURITÉ
+# =============================================================================
+# Clés privées et certificats
+*.key
+*.pem
+*.crt
+*.csr
+*.p12
+*.pfx
+
+# Fichiers de secrets (mais garder les exemples)
+secrets/
+!secrets/.gitkeep
+!secrets/example/
+
+# =============================================================================
+# MONITORING ET PERFORMANCE
+# =============================================================================
+# Profiling
+*.prof
+
+# Memory dumps
+*.hprof
+
+# =============================================================================
+# DOCUMENTATION GÉNÉRÉE
+# =============================================================================
+# Documentation auto-générée (garder les sources)
+docs/build/
+docs/_build/
+
+# =============================================================================
+# SPECIFIQUE AU PROJET
+# =============================================================================
+# Fichiers de test temporaires
+test_*.json
+test_*.xml
+test_uploads/
+
+# Scripts de développement temporaires
+temp_*.py
+debug_*.py
+
+# Exports de données
+exports/*
+!exports/.gitkeep
+
+# Rapports
+reports/*
+!reports/.gitkeep 

@@ -1,0 +1,3 @@
+#!/bin/bash
+# Raccourci pour lancer sans base de données
+python3 scripts/start_no_db.py 
